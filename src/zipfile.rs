@@ -4,10 +4,9 @@ use std::cmp::min;
 use std::io::{Seek, SeekFrom};
 
 #[derive(BinRead)]
-#[br(assert(&magic == b"\x50\x4b\x05\x06"), little)]
+#[br(magic = b"\x50\x4b\x05\x06", little)]
 #[derive(Debug)]
 struct EndOfCentralDirectory {
-    magic: [u8; 4],
     disk: u16,
     central_directory_disk: u16,
     num_central_directory_records: u16,
@@ -20,10 +19,9 @@ struct EndOfCentralDirectory {
 }
 
 #[derive(BinRead)]
-#[br(assert(&magic == b"\x50\x4b\x01\x02"), little)]
+#[br(magic = b"\x50\x4b\x01\x02", little)]
 #[derive(Debug)]
 pub struct CentralDirectoryRecord {
-    magic: [u8; 4],
     src_version: u16,
     extract_version: u16,
     flags: u16,
@@ -49,10 +47,9 @@ pub struct CentralDirectoryRecord {
 }
 
 #[derive(BinRead)]
-#[br(assert(&magic == b"\x50\x4b\x03\x04"), little)]
+#[br(magic = b"\x50\x4b\x03\x04", little)]
 #[derive(Debug)]
 pub struct LocalFileHeader {
-    magic: [u8; 4],
     extract_version: u16,
     flags: u16,
     compression: u16,
@@ -77,7 +74,8 @@ pub struct ZipEntry {
 
 impl ZipEntry {
     pub fn get_filename(&self) -> String {
-        return String::from_utf8(self.local_file_header.filename.clone()).unwrap();
+        return String::from_utf8(self.local_file_header.filename.clone())
+            .expect("Invalid filename");
     }
     pub fn get_uncompressed_size(&self) -> usize {
         return self.local_file_header.uncompressed_size as usize;

@@ -9,10 +9,9 @@ pub mod update_engine {
 }
 
 #[derive(BinRead)]
-#[br(assert(&magic == b"CrAU"), big)]
+#[br(magic = b"CrAU", big)]
 #[derive(Debug)]
 pub struct UpdateEnginePayload {
-    magic: [u8; 4],
     pub version: u64,
     manifest_size: u64,
     metadata_signature_size: u32,
