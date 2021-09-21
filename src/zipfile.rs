@@ -104,7 +104,7 @@ impl ZipArchive<'_> {
     }
     pub fn get_compressed_data(&self, entry: &ZipEntry) -> &[u8] {
         &self.data[entry.get_compressed_data_offset()
-            ..entry.get_compressed_data_offset() + entry.get_uncompressed_size()]
+            ..entry.get_compressed_data_offset() + entry.get_compressed_size()]
     }
 
     pub fn get_zip_entries(&self) -> Result<Vec<ZipEntry>, binread::Error> {
