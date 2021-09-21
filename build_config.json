@@ -1,0 +1,110 @@
+{
+    "includes": [
+        "./"
+    ],
+    "files": [
+        "update_metadata.proto"
+    ],
+    "opts": [
+        {
+            "scope": "type",
+            "description": "serde support for message",
+            "attr": "#[derive(serde::Serialize, serde::Deserialize)]\n#[serde(default)]",
+            "paths": [
+                "DeltaArchiveManifest",
+                "PartitionUpdate",
+                "ApexInfo",
+                "ImageInfo",
+                "PartitionInfo",
+                "InstallOperation",
+                "DynamicPartitionGroup",
+                "CowMergeOperation",
+                "Extent",
+                "chromeos_update_engine.signatures",
+                "Signature",
+                "DynamicPartitionMetadata"
+            ]
+        },
+        {
+            "scope": "type",
+            "description": "serde support for enum",
+            "attr": "#[derive(serde::Serialize, serde::Deserialize)]\n#[serde(rename_all = \"lowercase\")]",
+            "paths": []
+        },
+        {
+            "scope": "field",
+            "description": "skip string default values",
+            "attr": "#[serde(skip_serializing_if = \"String::is_empty\", default)]",
+            "paths": []
+        },
+        {
+            "scope": "field",
+            "description": "skip null values",
+            "attr": "#[serde(skip_serializing_if = \"Option::is_none\")]",
+            "paths": [
+                "data_offset",
+                "data_length",
+                "data_sha256_hash",
+                "src_sha256_hash",
+                "dst_length",
+                "src_length",
+                "partial_update",
+                "estimate_cow_size",
+                "run_postinstall",
+                "postinstall_path",
+                "filesystem_type",
+                "postinstall_optional",
+                "old_kernel_info",
+                "new_kernel_info",
+                "old_rootfs_info",
+                "new_rootfs_info",
+                "old_image_info",
+                "new_image_info",
+                "hash_tree_data_extent",
+                "hash_tree_extent",
+                "hash_tree_algorithm",
+                "hash_tree_salt",
+                "fec_data_extent",
+                "fec_extent",
+                "fec_roots",
+                "vabc_compression_param",
+                "version"
+            ]
+        },
+        {
+            "scope": "field",
+            "description": "skip null values",
+            "attr": "#[serde(skip_serializing_if = \"Vec::is_empty\")]",
+            "paths": [
+                "src_extents",
+                "merge_operations",
+                "new_partition_signature",
+                "install_operations",
+                "kernel_install_operations",
+                "partition_names"
+            ]
+        },
+        {
+            "scope": "field",
+            "description": "skip 0 for any num",
+            "attr": "#[serde(skip_serializing_if = \"prost_helper::is_zero\")]",
+            "paths": []
+        },
+        {
+            "scope": "field",
+            "description": "skip the field for serialization",
+            "attr": "#[serde(skip_serializing)]",
+            "paths": []
+        },
+        {
+            "scope": "bytes",
+            "description": "use bytes::Bytes for given bytes field",
+            "paths": []
+        },
+        {
+            "scope": "btree_map",
+            "description": "use BtreeMap for given map field",
+            "paths": []
+        }
+    ]
+}
