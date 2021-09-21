@@ -107,7 +107,7 @@ impl ZipArchive<'_> {
             ..entry.get_compressed_data_offset() + entry.get_compressed_size()]
     }
 
-    pub fn get_zip_entries(&self) -> Result<Vec<ZipEntry>, binread::Error> {
+    fn locate_end_of_central_directory(&self) -> Result<EndOfCentralDirectory, binread::Error> {
         let bytes = self.data;
         // Only search for End of Central Directory in last 64K of zip archive
         let chunk_size = min(bytes.len(), 64 * 1024);
@@ -126,7 +126,12 @@ impl ZipArchive<'_> {
             }
         };
         let mut reader = Cursor::new(&chunk[eocd_offset..]);
-        let eocd: EndOfCentralDirectory = reader.read_ne()?;
+        return Ok(reader.read_ne()?);
+    }
+
+    pub fn get_zip_entries(&self) -> Result<Vec<ZipEntry>, binread::Error> {
+        let eocd = self.locate_end_of_central_directory()?;
+        let bytes = self.data;
         let cd_offset: usize = eocd.central_directory_offset as usize;
         let cd_size: usize = eocd.central_directory_size as usize;
         let mut reader = Cursor::new(&bytes[cd_offset..cd_offset + cd_size]);
