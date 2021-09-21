@@ -5,6 +5,7 @@
     "files": [
         "update_metadata.proto"
     ],
+    "output": "protobuf_out",
     "opts": [
         {
             "scope": "type",

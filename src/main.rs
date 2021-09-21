@@ -5,10 +5,6 @@ use std::fs;
 mod payload;
 mod zipfile;
 
-pub mod update_engine {
-    include!(concat!(env!("OUT_DIR"), "/chromeos_update_engine.rs"));
-}
-
 fn dump_payload(payload: &[u8]) {
     let mut reader = Cursor::new(payload);
     let payload = payload::UpdateEnginePayload::read(&mut reader).unwrap();
