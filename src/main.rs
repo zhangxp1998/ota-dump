@@ -31,16 +31,14 @@ fn main() -> Result<(), i32> {
     let data = mmap.as_ref();
 
     if path.to_str().map_or(false, |f| f.ends_with(".zip")) {
-        let ziparchive = zipfile::ZipArchive::new(data);
-        let records = ziparchive
-            .get_zip_entries()
-            .expect("Failed to parse zip archive");
-        for entry in records {
+        let ziparchive = zipfile::ZipArchive::new(data).expect("Failed to open zip archive");
+        for entry in ziparchive.into_iter() {
             if entry.get_filename() == "payload.bin" {
                 assert!(!entry.is_compressed());
                 assert_eq!(entry.get_compressed_size(), entry.get_uncompressed_size());
                 let payload = ziparchive.get_compressed_data(&entry);
                 dump_payload(payload);
+                return Ok(());
             }
         }
     } else {
