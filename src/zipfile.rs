@@ -112,7 +112,7 @@ impl ZipArchive<'_> {
         // Only search for End of Central Directory in last 64K of zip archive
         let chunk_size = min(bytes.len(), 64 * 1024);
         let chunk: &[u8] = &bytes[bytes.len() - chunk_size..];
-        let eocd_magic: &[u8; 4] = &[0x50, 0x4b, 0x05, 0x06];
+        let eocd_magic: [u8; 4] = [0x50, 0x4b, 0x05, 0x06];
         let eocd_offset = match chunk
             .windows(eocd_magic.len())
             .position(|window| window == eocd_magic)
