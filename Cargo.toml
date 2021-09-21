@@ -1,6 +1,6 @@
 [package]
 name = "ota-dump"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2018"
 description = "A tool to dump manifest of Android's OTA package"
 license-file = "LICENSE"
@@ -20,5 +20,4 @@ serde_json = "1.0.64"
 [build-dependencies]
 serde = "1.0.125"
 serde_json = "1.0.64"
-prost-serde = "0.2.0"
 prost-build = "0.7.0"

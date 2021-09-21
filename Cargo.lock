@@ -165,14 +165,13 @@ dependencies = [
 
 [[package]]
 name = "ota-dump"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "binread",
  "memmap",
  "prost",
  "prost-build",
  "prost-helper",
- "prost-serde",
  "prost-types",
  "serde",
  "serde_json",
@@ -254,17 +253,6 @@ dependencies = [
  "num-traits",
  "prost",
  "serde",
-]
-
-[[package]]
-name = "prost-serde"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b348d30b82d3dd3754232a7c9b151fe15927bdb1f427eed4fca47be2fe8084f"
-dependencies = [
- "prost-build",
- "serde",
- "serde_json",
 ]
 
 [[package]]
