@@ -123,7 +123,7 @@ fn locate_end_of_central_directory(bytes: &[u8]) -> Result<EndOfCentralDirectory
         }
     };
     let mut reader = Cursor::new(&chunk[eocd_offset..]);
-    return Ok(reader.read_ne()?);
+    return reader.read_ne();
 }
 
 impl ZipArchive<'_> {
