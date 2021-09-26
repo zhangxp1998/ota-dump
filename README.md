@@ -7,6 +7,10 @@ Format of `payload.bin` is defined at [system/update_engine/update_metadata.prot
 
 This tool locates `payload.bin` inside OTA's zip file and parses the format according to definition in update_metadata.proto.
 
+# Install
+1. Install rust via https://www.rust-lang.org/learn/get-started
+2. `cargo install ota-dump`
+
 # Usage
 
 `ota-dump <path to android OTA.zip>`
