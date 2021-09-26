@@ -2,6 +2,11 @@
 
 update_metadata.proto is copied from [aosp](https://cs.android.com/android/platform/superproject/+/master:system/update_engine/update_metadata.proto;l=1?q=update_metadata.proto&sq=)
 
+Android's OTA file is simply a .zip archive. Most of the information is stored in `payload.bin` entry inside it.
+Format of `payload.bin` is defined at [system/update_engine/update_metadata.proto](https://cs.android.com/android/platform/superproject/+/master:system/update_engine/update_metadata.proto;l=22?q=DeltaArchive).
+
+This tool locates `payload.bin` inside OTA's zip file and parses the format according to definition in update_metadata.proto.
+
 # Usage
 
 `ota-dump <path to android OTA.zip>`
