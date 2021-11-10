@@ -20,8 +20,11 @@
 				}
 			},
 			"args": [
-				"/usr/local/google/home/zhangkelvin/aosp/cf_x86_keystore2.zip"
+				"https://android.googleapis.com/packages/ota-api/package/727b25fb87e62595235b7a766b012e652640f9f3.zip"
 			],
+			"sourceMap": {
+				"/rustc/a178d0322ce20e33eac124758e837cbd80a6f633/": "/usr/local/google/home/zhangkelvin/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust"
+			},
 			"cwd": "${workspaceFolder}"
 		},
 		{

@@ -20,7 +20,7 @@ struct EndOfCentralDirectory {
 
 #[derive(BinRead)]
 #[br(magic = b"\x50\x4b\x01\x02", little)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CentralDirectoryRecord {
     src_version: u16,
     extract_version: u16,
@@ -104,6 +104,7 @@ impl ZipEntry {
 pub struct ZipArchive<File: Read + Seek> {
     data: File,
     eocd: EndOfCentralDirectory,
+    central_directory: Vec<CentralDirectoryRecord>,
 }
 
 fn stream_len(file: &mut dyn Seek) -> Result<u64, std::io::Error> {
@@ -145,7 +146,21 @@ fn locate_end_of_central_directory<File: Read + Seek>(
 impl<File: Read + Seek> ZipArchive<File> {
     pub fn new(mut data: File) -> Result<ZipArchive<File>, binread::Error> {
         let eocd = locate_end_of_central_directory(&mut data)?;
-        return Ok(ZipArchive { data, eocd });
+        data.seek(SeekFrom::Start(eocd.central_directory_offset as u64))
+            .unwrap();
+        let mut central_directory_data = vec![0 as u8; eocd.central_directory_size as usize];
+        data.read_exact(&mut central_directory_data[..]).unwrap();
+        let mut central_directory_reader = Cursor::new(central_directory_data);
+        let mut central_directory_records: Vec<CentralDirectoryRecord> = vec![];
+        for _ in 0..eocd.num_central_directory_records {
+            let cd: CentralDirectoryRecord = central_directory_reader.read_ne()?;
+            central_directory_records.push(cd);
+        }
+        return Ok(ZipArchive {
+            data,
+            eocd,
+            central_directory: central_directory_records,
+        });
     }
     pub fn get_compressed_data_file(
         &mut self,
@@ -155,6 +170,7 @@ impl<File: Read + Seek> ZipArchive<File> {
             .seek(SeekFrom::Start(entry.get_compressed_data_offset() as u64))?;
         Ok(&mut self.data)
     }
+
     pub fn get_compressed_data(&mut self, entry: &ZipEntry) -> Vec<u8> {
         let mut buf = vec![0 as u8; entry.get_compressed_size()];
         let reader = self.get_compressed_data_file(entry).unwrap();
@@ -163,45 +179,30 @@ impl<File: Read + Seek> ZipArchive<File> {
     }
 
     pub fn into_iter(&mut self) -> ZipEntryIterator<File> {
+        self.data
+            .seek(SeekFrom::Start(self.eocd.central_directory_offset as u64))
+            .unwrap();
         ZipEntryIterator {
             reader: &mut self.data,
-            eocd: self.eocd.clone(),
+            eocd: &self.central_directory,
             idx: 0,
-            pos: self.eocd.central_directory_offset as u64,
         }
     }
 }
 
 pub struct ZipEntryIterator<'a, File: Read + Seek> {
     reader: &'a mut File,
-    eocd: EndOfCentralDirectory,
+    eocd: &'a Vec<CentralDirectoryRecord>,
     idx: usize,
-    pos: u64,
 }
 
-impl<File: Read + Seek> Iterator for ZipEntryIterator<'_, File> {
+impl<'a, T: Read + Seek> Iterator for ZipEntryIterator<'a, T> {
     type Item = ZipEntry;
     fn next(&mut self) -> Option<ZipEntry> {
-        if self.idx >= self.eocd.total_central_directory_recrods as usize {
+        if self.idx >= self.eocd.len() {
             return None;
         }
-        self.reader.seek(SeekFrom::Start(self.pos)).ok()?;
-        let cd = self.reader.read_ne();
-        if cd.is_err() {
-            println!(
-                "Failed to parse {}th central directory record {:?}",
-                self.idx, cd
-            );
-            return None;
-        }
-        let cd: CentralDirectoryRecord = cd.unwrap();
-        self.pos = match self.reader.stream_position() {
-            Ok(s) => s,
-            Err(e) => {
-                println!("Failed to determine current position of stream {}", e);
-                return None;
-            }
-        };
+        let cd = self.eocd[self.idx].clone();
         let res = self
             .reader
             .seek(SeekFrom::Start(cd.local_file_header_offset as u64));
@@ -214,9 +215,6 @@ impl<File: Read + Seek> Iterator for ZipEntryIterator<'_, File> {
             );
             return None;
         }
-        self.reader
-            .seek(SeekFrom::Start(cd.local_file_header_offset as u64))
-            .ok()?;
         let local_file_header = self.reader.read_ne();
         if local_file_header.is_err() {
             println!(
