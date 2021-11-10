@@ -35,7 +35,7 @@ impl Read for HttpFile {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let cap = min(self.file_size - 1, self.pos + buf.len() as u64 - 1);
         let read_size = cap - self.pos + 1;
-        println!("Reading {}-{}, len: {}", self.pos, cap, buf.len());
+        // println!("Reading {}-{}, len: {}", self.pos, cap, buf.len());
         let mut resp = self
             .client
             .get(self.url.as_str())
