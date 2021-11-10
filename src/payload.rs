@@ -2,10 +2,7 @@ use binread::BinRead;
 use prost::{DecodeError, Message};
 
 pub mod update_engine {
-    include!(concat!(
-        "../target/protobuf_out",
-        "/chromeos_update_engine.rs"
-    ));
+    include!("../target/protobuf_out/chromeos_update_engine.rs");
 }
 
 #[derive(BinRead)]

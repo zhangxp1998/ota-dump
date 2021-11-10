@@ -1,11 +1,11 @@
 use binread::{io::Cursor, BinRead, BinReaderExt};
 
 use std::cmp::min;
-use std::io::{Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 
 #[derive(BinRead)]
 #[br(magic = b"\x50\x4b\x05\x06", little)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct EndOfCentralDirectory {
     disk: u16,
     central_directory_disk: u16,
@@ -101,14 +101,30 @@ impl ZipEntry {
     }
 }
 
-pub struct ZipArchive<'a> {
-    data: &'a [u8],
+pub struct ZipArchive<File: Read + Seek> {
+    data: File,
     eocd: EndOfCentralDirectory,
 }
-fn locate_end_of_central_directory(bytes: &[u8]) -> Result<EndOfCentralDirectory, binread::Error> {
+
+fn stream_len(file: &mut dyn Seek) -> Result<u64, std::io::Error> {
+    let cur_pos = file.stream_position()?;
+    file.seek(SeekFrom::End(0))?;
+    let res = file.stream_position()?;
+    file.seek(SeekFrom::Start(cur_pos))?;
+    Ok(res)
+}
+
+fn locate_end_of_central_directory<File: Read + Seek>(
+    file: &mut File,
+) -> Result<EndOfCentralDirectory, binread::Error> {
     // Only search for End of Central Directory in last 64K of zip archive
-    let chunk_size = min(bytes.len(), 64 * 1024);
-    let chunk: &[u8] = &bytes[bytes.len() - chunk_size..];
+    let file_size = stream_len(file)?;
+    let chunk_size = min(file_size, 64 * 1024);
+    file.seek(SeekFrom::End(-(chunk_size as i64)))?;
+    let mut chunk: Vec<u8> = vec![0; chunk_size as usize];
+
+    file.read_exact(&mut chunk[..])
+        .expect(format!("Failed to read last {} bytes", chunk_size).as_str());
     let eocd_magic: [u8; 4] = [0x50, 0x4b, 0x05, 0x06];
     let eocd_offset = match chunk
         .windows(eocd_magic.len())
@@ -126,42 +142,50 @@ fn locate_end_of_central_directory(bytes: &[u8]) -> Result<EndOfCentralDirectory
     return reader.read_ne();
 }
 
-impl ZipArchive<'_> {
-    pub fn new(data: &[u8]) -> Result<ZipArchive, binread::Error> {
-        let eocd = locate_end_of_central_directory(data)?;
+impl<File: Read + Seek> ZipArchive<File> {
+    pub fn new(mut data: File) -> Result<ZipArchive<File>, binread::Error> {
+        let eocd = locate_end_of_central_directory(&mut data)?;
         return Ok(ZipArchive { data, eocd });
     }
-    pub fn get_compressed_data(&self, entry: &ZipEntry) -> &[u8] {
-        &self.data[entry.get_compressed_data_offset()
-            ..entry.get_compressed_data_offset() + entry.get_compressed_size()]
+    pub fn get_compressed_data_file(
+        &mut self,
+        entry: &ZipEntry,
+    ) -> Result<&mut File, std::io::Error> {
+        self.data
+            .seek(SeekFrom::Start(entry.get_compressed_data_offset() as u64))?;
+        Ok(&mut self.data)
+    }
+    pub fn get_compressed_data(&mut self, entry: &ZipEntry) -> Vec<u8> {
+        let mut buf = vec![0 as u8; entry.get_compressed_size()];
+        let reader = self.get_compressed_data_file(entry).unwrap();
+        reader.read(&mut buf[..]).unwrap();
+        buf
     }
 
-    pub fn into_iter(&self) -> ZipEntryIterator {
-        let eocd = &self.eocd;
-        let cd_offset = eocd.central_directory_offset as usize;
-        let cd_size = eocd.central_directory_size as usize;
+    pub fn into_iter(&mut self) -> ZipEntryIterator<File> {
         ZipEntryIterator {
-            reader: Cursor::new(&self.data[cd_offset..cd_offset + cd_size]),
-            file_header_reader: Cursor::new(self.data),
-            total_central_directory_recrods: eocd.total_central_directory_recrods as usize,
+            reader: &mut self.data,
+            eocd: self.eocd.clone(),
             idx: 0,
+            pos: self.eocd.central_directory_offset as u64,
         }
     }
 }
 
-pub struct ZipEntryIterator<'a> {
-    reader: Cursor<&'a [u8]>,
-    file_header_reader: Cursor<&'a [u8]>,
-    total_central_directory_recrods: usize,
+pub struct ZipEntryIterator<'a, File: Read + Seek> {
+    reader: &'a mut File,
+    eocd: EndOfCentralDirectory,
     idx: usize,
+    pos: u64,
 }
 
-impl Iterator for ZipEntryIterator<'_> {
+impl<File: Read + Seek> Iterator for ZipEntryIterator<'_, File> {
     type Item = ZipEntry;
     fn next(&mut self) -> Option<ZipEntry> {
-        if self.idx >= self.total_central_directory_recrods {
+        if self.idx >= self.eocd.total_central_directory_recrods as usize {
             return None;
         }
+        self.reader.seek(SeekFrom::Start(self.pos)).ok()?;
         let cd = self.reader.read_ne();
         if cd.is_err() {
             println!(
@@ -171,8 +195,15 @@ impl Iterator for ZipEntryIterator<'_> {
             return None;
         }
         let cd: CentralDirectoryRecord = cd.unwrap();
+        self.pos = match self.reader.stream_position() {
+            Ok(s) => s,
+            Err(e) => {
+                println!("Failed to determine current position of stream {}", e);
+                return None;
+            }
+        };
         let res = self
-            .file_header_reader
+            .reader
             .seek(SeekFrom::Start(cd.local_file_header_offset as u64));
         if res.is_err() {
             println!(
@@ -183,7 +214,10 @@ impl Iterator for ZipEntryIterator<'_> {
             );
             return None;
         }
-        let local_file_header = self.file_header_reader.read_ne();
+        self.reader
+            .seek(SeekFrom::Start(cd.local_file_header_offset as u64))
+            .ok()?;
+        let local_file_header = self.reader.read_ne();
         if local_file_header.is_err() {
             println!(
                 "Failed to parse local file header: {}, {:?}",
@@ -197,6 +231,7 @@ impl Iterator for ZipEntryIterator<'_> {
             central_directory_record: cd,
             local_file_header,
         };
+
         self.idx += 1;
         return Some(zip_record);
     }

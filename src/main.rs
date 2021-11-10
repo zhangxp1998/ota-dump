@@ -1,13 +1,14 @@
-use binread::io::Cursor;
 use binread::BinRead;
-use std::fs;
+use std::{
+    fs::{self},
+    io::{Read, Seek},
+};
 
 mod payload;
 mod zipfile;
 
-fn dump_payload(payload: &[u8]) {
-    let mut reader = Cursor::new(payload);
-    let payload = payload::UpdateEnginePayload::read(&mut reader)
+fn dump_payload<File: Read + Seek>(payload_file: &mut File) {
+    let payload = payload::UpdateEnginePayload::read(payload_file)
         .expect("Failed to parse update_engine payload");
     assert_eq!(payload.version, 2);
     let manifest = payload.get_manifest().unwrap();
@@ -26,23 +27,21 @@ fn main() -> Result<(), i32> {
         println!("{} does not exists", path.display());
         return Err(2);
     }
-    let file = fs::File::open(&path).unwrap();
-    let mmap = unsafe { memmap::Mmap::map(&file).unwrap() };
-    let data = mmap.as_ref();
+    let mut file = fs::File::open(&path).unwrap();
 
     if path.to_str().map_or(false, |f| f.ends_with(".zip")) {
-        let ziparchive = zipfile::ZipArchive::new(data).expect("Failed to open zip archive");
+        let mut ziparchive = zipfile::ZipArchive::new(file).expect("Failed to open zip archive");
         for entry in ziparchive.into_iter() {
             if entry.get_filename() == "payload.bin" {
                 assert!(!entry.is_compressed());
                 assert_eq!(entry.get_compressed_size(), entry.get_uncompressed_size());
-                let payload = ziparchive.get_compressed_data(&entry);
+                let payload = ziparchive.get_compressed_data_file(&entry).unwrap();
                 dump_payload(payload);
                 return Ok(());
             }
         }
     } else {
-        dump_payload(data);
+        dump_payload(&mut file);
     }
     return Ok(());
 }
