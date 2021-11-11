@@ -23,7 +23,8 @@
                 "Extent",
                 "chromeos_update_engine.signatures",
                 "Signature",
-                "DynamicPartitionMetadata"
+                "DynamicPartitionMetadata",
+                "ApexMetadata"
             ]
         },
         {
@@ -69,7 +70,11 @@
                 "fec_extent",
                 "fec_roots",
                 "vabc_compression_param",
-                "version"
+                "version",
+                "old_partition_info",
+                "snapshot_enabled",
+                "vabc_enabled",
+                "cow_version"
             ]
         },
         {
@@ -77,12 +82,14 @@
             "description": "skip null values",
             "attr": "#[serde(skip_serializing_if = \"Vec::is_empty\")]",
             "paths": [
+                "operations",
                 "src_extents",
                 "merge_operations",
                 "new_partition_signature",
                 "install_operations",
                 "kernel_install_operations",
-                "partition_names"
+                "partition_names",
+                "apex_info"
             ]
         },
         {
