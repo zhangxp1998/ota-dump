@@ -113,6 +113,16 @@
             "scope": "btree_map",
             "description": "use BtreeMap for given map field",
             "paths": []
+        },
+        {
+            "scope": "field",
+            "description": "use BtreeMap for given map field",
+            "attr": "#[serde(with = \"payload_formatter\")]",
+            "paths": [
+                "hash",
+                "data_sha256_hash",
+                "src_sha256_hash"
+            ]
         }
     ]
 }
