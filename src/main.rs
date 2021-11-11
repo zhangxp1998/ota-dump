@@ -48,15 +48,22 @@ impl Read for HttpFile {
     }
 }
 
-fn dump_payload<File: Read + Seek>(payload_file: &mut File) {
+fn dump_payload<File: Read + Seek>(payload_file: &mut File, show_ops: bool) {
     let payload = payload::UpdateEnginePayload::read(payload_file)
         .expect("Failed to parse update_engine payload");
     assert_eq!(payload.version, 2);
-    let manifest = payload.get_manifest().unwrap();
+    let mut manifest: payload::update_engine::DeltaArchiveManifest =
+        payload.get_manifest().unwrap();
+    if !show_ops {
+        for part in manifest.partitions.iter_mut() {
+            part.operations.clear();
+            part.merge_operations.clear();
+        }
+    }
     println!("{}", serde_json::to_string_pretty(&manifest).unwrap());
 }
 
-fn dump_payload_zip<File: Read + Seek>(payload_file: &mut File) {
+fn dump_payload_zip<File: Read + Seek>(payload_file: &mut File, show_ops: bool) {
     let mut ziparchive =
         zipfile::ZipArchive::new(payload_file).expect("Failed to open zip archive");
     for entry in ziparchive.into_iter() {
@@ -64,7 +71,7 @@ fn dump_payload_zip<File: Read + Seek>(payload_file: &mut File) {
             assert!(!entry.is_compressed());
             assert_eq!(entry.get_compressed_size(), entry.get_uncompressed_size());
             let payload = ziparchive.get_compressed_data_file(&entry).unwrap();
-            dump_payload(payload);
+            dump_payload(payload, show_ops);
             return;
         }
     }
@@ -72,24 +79,31 @@ fn dump_payload_zip<File: Read + Seek>(payload_file: &mut File) {
 
 fn main() -> Result<(), i32> {
     let args: Vec<String> = std::env::args().collect();
-    if std::env::args().len() != 2 {
-        println!("Usage: {} <path to payload.bin or OTA.zip>", args[0]);
+    if std::env::args().len() != 2 && std::env::args().len() != 3 {
+        println!(
+            "Usage: {} [-l show operations] <path to payload.bin or OTA.zip>",
+            args[0]
+        );
         return Err(1);
     }
-    let path = &args[1];
+    let show_ops = args[1] == "-l";
+    let path = &args[args.len() - 1];
     if path.starts_with("http://") || path.starts_with("https://") {
         let client = reqwest::blocking::Client::new();
         let resp = client.get(path).send().unwrap();
         let content_length = resp.content_length().unwrap();
-        dump_payload_zip(&mut BufReader::with_capacity(
-            1024 * 64,
-            HttpFile {
-                url: path.clone(),
-                client: client,
-                file_size: content_length,
-                pos: 0,
-            },
-        ));
+        dump_payload_zip(
+            &mut BufReader::with_capacity(
+                1024 * 64,
+                HttpFile {
+                    url: path.clone(),
+                    client: client,
+                    file_size: content_length,
+                    pos: 0,
+                },
+            ),
+            show_ops,
+        );
         return Ok(());
     }
     let path = std::path::Path::new(path);
@@ -100,9 +114,9 @@ fn main() -> Result<(), i32> {
     let mut file = fs::File::open(&path).unwrap();
 
     if path.to_str().map_or(false, |f| f.ends_with(".zip")) {
-        dump_payload_zip(&mut file);
+        dump_payload_zip(&mut file, show_ops);
     } else {
-        dump_payload(&mut file);
+        dump_payload(&mut file, show_ops);
     }
     return Ok(());
 }
