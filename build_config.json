@@ -121,7 +121,8 @@
             "paths": [
                 "hash",
                 "data_sha256_hash",
-                "src_sha256_hash"
+                "src_sha256_hash",
+                "hash_tree_salt"
             ]
         }
     ]

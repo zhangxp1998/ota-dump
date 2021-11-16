@@ -111,7 +111,7 @@ fn main() -> Result<(), i32> {
         println!("{} does not exists", path.display());
         return Err(2);
     }
-    let mut file = fs::File::open(&path).unwrap();
+    let mut file = BufReader::with_capacity(1024 * 64, fs::File::open(&path).unwrap());
 
     if path.to_str().map_or(false, |f| f.ends_with(".zip")) {
         dump_payload_zip(&mut file, show_ops);
