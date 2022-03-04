@@ -74,12 +74,14 @@
                 "old_partition_info",
                 "snapshot_enabled",
                 "vabc_enabled",
-                "cow_version"
+                "cow_version",
+                "is_compressed",
+                "decompressed_size"
             ]
         },
         {
             "scope": "field",
-            "description": "skip null values",
+            "description": "skip empty vec",
             "attr": "#[serde(skip_serializing_if = \"Vec::is_empty\")]",
             "paths": [
                 "operations",
