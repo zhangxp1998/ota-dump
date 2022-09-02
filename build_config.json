@@ -76,7 +76,8 @@
                 "vabc_enabled",
                 "cow_version",
                 "is_compressed",
-                "decompressed_size"
+                "decompressed_size",
+                "security_patch_level"
             ]
         },
         {
