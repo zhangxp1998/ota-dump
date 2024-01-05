@@ -59,6 +59,7 @@ fn dump_payload<File: Read + Seek>(payload_file: &mut File, show_ops: bool) {
             part.operations.clear();
             part.merge_operations.clear();
         }
+        manifest.apex_info.clear();
     }
     println!("{}", serde_json::to_string_pretty(&manifest).unwrap());
 }
