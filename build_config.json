@@ -77,7 +77,8 @@
                 "cow_version",
                 "is_compressed",
                 "decompressed_size",
-                "security_patch_level"
+                "security_patch_level",
+                "compression_factor"
             ]
         },
         {
