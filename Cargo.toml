@@ -1,6 +1,6 @@
 [package]
 name = "ota-dump"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2018"
 description = "A tool to dump manifest of Android's OTA package"
 license-file = "LICENSE"
